@@ -6,6 +6,8 @@ if __name__== "__main__":
         
     tim = Dog("tim", 6, "brown")
     tim.speak()
+    tim.show()
+    print(f"Dogs count: {Dog.no_of_dogs}")
     
     
     
