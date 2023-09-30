@@ -1,2 +1,2 @@
 # python_deep_learning
-exploring git
+Python tools and libraries
