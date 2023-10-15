@@ -1,0 +1,6 @@
+####----------vscode highlit background color settings-----------------####
+"workbench.colorCustomizations": {
+        "editor.selectionBackground": "#135564",
+        "editor.selectionHighlightBackground": "#135564"
+    }
+
