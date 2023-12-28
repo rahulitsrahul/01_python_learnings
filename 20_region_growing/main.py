@@ -38,8 +38,9 @@ def get_neighbors(point, height, width):
 
 if __name__ == "__main__":
     # Load image
-    image = cv2.imread("img_1.png", cv2.IMREAD_GRAYSCALE)
+    image = cv2.imread(r"D:\02_my_learnings\01_python_repo\01_python_learnings\20_region_growing\img_1.png", 0)
     plt.imshow(image, cmap='gray')
+    plt.show()
     
     # Define seed point and threshold
     seed = (210, 210)  # You can choose any seed point
@@ -52,3 +53,4 @@ if __name__ == "__main__":
     # Display the original image and segmented result
     print("Display Segmented image")
     plt.imshow(segmented_image, cmap='gray')
+    plt.show()
