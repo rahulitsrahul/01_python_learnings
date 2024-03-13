@@ -1,10 +1,11 @@
 import numpy as np
+import cv2
 from skimage import io
 from skimage.color import rgb2hsv, hsv2rgb
 import matplotlib.pyplot as plt
 from typing import List, Union
-import cv2
-
+from joblib import Parallel, delayed
+import time
 
 def compute_clip_limit(
     block: np.ndarray, alpha: float = 40, pi: float = 1.5, R: int = 255
@@ -158,7 +159,7 @@ def dual_gamma_clahe(
         gray_image = hsv_image[:, :, 2]
         gray_image = np.clip(gray_image * 255, 0, 255)
     elif ndim == 2:
-        gray_image = image.copy().astype(np.float)
+        gray_image = image.copy().astype(np.float32)
     else:
         raise ValueError(
             f"Wrong number of shape or dimensions. Either single or 3 channel but image has shape {image.shape}"
@@ -256,50 +257,66 @@ def dual_gamma_clahe(
                 hists[ii, jj] = np.maximum(tau_1, gamma)
             else:
                 hists[ii, jj] = gamma
-
+    
+    t1 = time.time()
     # Bilinear interpolation
-    for i in range(pad_height):
-        for j in range(pad_width):
-            p_i = int(gray_image[i][j])
+    def compute_pixel_value(i_start, i_end, j_len):
+        results = []
+        for i in range(i_start, i_end):
+            res_row = []
+            for j in range(j_len):
+                p_i = int(gray_image[i][j])
+        
+                # Get current block index
+                block_x = i // block_size[0]
+                block_y = j // block_size[1]
+                
+                # Get the central indexes of the running block
+                center_block_x = block_x * block_size[0] + n_height_blocks // 2
+                center_block_y = block_y * block_size[1] + n_width_blocks // 2
+                
+                # Compute the block coordinates to interpolate from
+                block_y_a, block_y_c = compute_block_coords(center_block_x, block_x, i, n_height_blocks)
+                block_x_a, block_x_b = compute_block_coords(center_block_y, block_y, j, n_width_blocks)
+                
+                # Block image coordinates
+                y_a = block_y_c * block_size[0] + block_size[0] // 2
+                y_c = block_y_a * block_size[0] + block_size[0] // 2
+                x_a = block_x_a * block_size[1] + block_size[1] // 2
+                x_b = block_x_b * block_size[1] + block_size[1] // 2
+                
+                m = compute_mn_factors((y_a, y_c), i)
+                n = compute_mn_factors((x_a, x_b), j)
+                
+                Ta = hists[block_y_c, block_x_a, p_i]
+                Tb = hists[block_y_c, block_x_b, p_i]
+                Tc = hists[block_y_a, block_x_a, p_i]
+                Td = hists[block_y_a, block_x_b, p_i]
+                
+                result = int(m * (n * Ta + (1 - n) * Tb) + (1 - m) * (n * Tc + (1 - n) * Td))
+                res_row.append(result)
+            results.append(res_row)
+            
+        return results
 
-            # Get current block index
-            block_x = i // block_size[0]
-            block_y = j // block_size[1]
-
-            # Get the central indexes of the running block
-            center_block_x = block_x * block_size[0] + n_height_blocks // 2
-            center_block_y = block_y * block_size[1] + n_width_blocks // 2
-
-            # Compute the block coordinates to interpolate from
-            block_y_a, block_y_c = compute_block_coords(
-                center_block_x, block_x, i, n_height_blocks
-            )
-            block_x_a, block_x_b = compute_block_coords(
-                center_block_y, block_y, j, n_width_blocks
-            )
-
-            # Block image coordinates
-            y_a = block_y_c * block_size[0] + block_size[0] // 2
-            y_c = block_y_a * block_size[0] + block_size[0] // 2
-            x_a = block_x_a * block_size[1] + block_size[1] // 2
-            x_b = block_x_b * block_size[1] + block_size[1] // 2
-
-            m = compute_mn_factors((y_a, y_c), i)
-            n = compute_mn_factors((x_a, x_b), j)
-
-            Ta = hists[block_y_c, block_x_a, p_i]
-            Tb = hists[block_y_c, block_x_b, p_i]
-            Tc = hists[block_y_a, block_x_a, p_i]
-            Td = hists[block_y_a, block_x_b, p_i]
-
-            result[i, j] = int(
-                m * (n * Ta + (1 - n) * Tb) + (1 - m) * (n * Tc + (1 - n) * Td)
-            )
-
-
+    height, width = gray_image.shape
+    width_arr = np.arange(height)
+    split_width = np.split(width_arr, 16)
+    width_start = []
+    width_end = []
+    for split_wid in split_width:
+        width_start.append(split_wid[0])
+        width_end.append(split_wid[-1] + 1)
+    
+    
+    result = Parallel(n_jobs=4)(delayed(compute_pixel_value)(i_start, i_end, len(gray_image[0])) for i_start, i_end in zip(width_start, width_end))
+    result = np.array(result).reshape(height, width)
     result = result[unpad_indices]
     result = np.clip(result, 0, R)
-    return result.astype(np.uint8)
+    
+    t2 = time.time()
+    print(f"time_elapsed: {t2 - t1}")
+    
     if ndim == 3:
         result = result / 255.0
         hsv_image[:, :, 2] = result
@@ -309,8 +326,8 @@ def dual_gamma_clahe(
 
 
 if __name__ == "__main__":
-    path = "img_00.jpg"
-    image = cv2.imread(path, 1)
+    path = "img_1.png"
+    image = cv2.imread(path, 0)
     equalized_image = dual_gamma_clahe(
         image.copy(), block_size=32, alpha=100.0, delta=50.0, pi=1.5, bins=256
     )
@@ -322,7 +339,7 @@ if __name__ == "__main__":
     else:
         cmap = None
     ax[0].imshow(image, cmap=cmap)
-    ax[1].imshow(equalized_image, cmap='gray')
+    ax[1].imshow(equalized_image, cmap=cmap)
     ax[0].set_title("Input Image")
     ax[1].set_title("Equalized Image ")
     ax[0].axis("off")

@@ -38,7 +38,7 @@ def get_neighbors(point, height, width):
 
 if __name__ == "__main__":
     # Load image
-    image = cv2.imread(r"D:\02_my_learnings\01_python_repo\01_python_learnings\20_region_growing\img_1.png", 0)
+    image = cv2.imread(r"D:\02_my_learnings\01_python_repo\01_python_learnings\20_region_growing\img_1.png", 0) # Read as grayscale
     plt.imshow(image, cmap='gray')
     plt.show()
     

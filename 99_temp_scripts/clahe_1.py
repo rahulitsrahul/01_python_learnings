@@ -104,7 +104,7 @@ def apply_clahe(image, clip_limit=2.0, grid_size=(8, 8)):
 
 # Example usage:
 # Load grayscale image
-image = cv2.imread('img_1.png', 0)
+image = cv2.imread('img_5.png', 0)
 
 tile_size = (8, 8)
 CL = 2.0

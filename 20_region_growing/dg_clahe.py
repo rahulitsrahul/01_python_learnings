@@ -4,6 +4,7 @@ from skimage.color import rgb2hsv, hsv2rgb
 import matplotlib.pyplot as plt
 from typing import List, Union
 import cv2
+import time
 
 
 def compute_clip_limit(
@@ -158,7 +159,7 @@ def dual_gamma_clahe(
         gray_image = hsv_image[:, :, 2]
         gray_image = np.clip(gray_image * 255, 0, 255)
     elif ndim == 2:
-        gray_image = image.copy().astype(np.float)
+        gray_image = image.copy().astype(np.float32)
     else:
         raise ValueError(
             f"Wrong number of shape or dimensions. Either single or 3 channel but image has shape {image.shape}"
@@ -256,7 +257,8 @@ def dual_gamma_clahe(
                 hists[ii, jj] = np.maximum(tau_1, gamma)
             else:
                 hists[ii, jj] = gamma
-
+                
+    t1 = time.time()
     # Bilinear interpolation
     for i in range(pad_height):
         for j in range(pad_width):
@@ -299,7 +301,10 @@ def dual_gamma_clahe(
 
     result = result[unpad_indices]
     result = np.clip(result, 0, R)
-    return result.astype(np.uint8)
+    
+    t2 = time.time()
+    print(f"Elapsed: {t2 - t1}")
+    
     if ndim == 3:
         result = result / 255.0
         hsv_image[:, :, 2] = result
@@ -309,8 +314,8 @@ def dual_gamma_clahe(
 
 
 if __name__ == "__main__":
-    path = "img_00.jpg"
-    image = cv2.imread(path, 1)
+    path = "img_1.png"
+    image = cv2.imread(path, 0)
     equalized_image = dual_gamma_clahe(
         image.copy(), block_size=32, alpha=100.0, delta=50.0, pi=1.5, bins=256
     )
@@ -322,7 +327,7 @@ if __name__ == "__main__":
     else:
         cmap = None
     ax[0].imshow(image, cmap=cmap)
-    ax[1].imshow(equalized_image, cmap='gray')
+    ax[1].imshow(equalized_image, cmap=cmap)
     ax[0].set_title("Input Image")
     ax[1].set_title("Equalized Image ")
     ax[0].axis("off")
