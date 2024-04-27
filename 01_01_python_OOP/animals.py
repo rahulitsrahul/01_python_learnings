@@ -34,5 +34,6 @@ class Dog(Pet):
 
 # Test script
 if __name__ == "__main__":
-    d1 = Dog('my_name', 15, "White")
+    d1 = Dog('rotw', 15, "White")
     d1.speak()
+    d1.show()

@@ -311,8 +311,9 @@ def dual_gamma_clahe(
     
     result = Parallel(n_jobs=4)(delayed(compute_pixel_value)(i_start, i_end, len(gray_image[0])) for i_start, i_end in zip(width_start, width_end))
     result = np.array(result).reshape(height, width)
-    result = result[unpad_indices]
+    # result = result[unpad_indices]
     result = np.clip(result, 0, R)
+    result = result[pad_start[0]:result.shape[0]-pad_end[0], pad_start[1]:result.shape[1]-pad_end[1]]
     
     t2 = time.time()
     print(f"time_elapsed: {t2 - t1}")
@@ -327,7 +328,8 @@ def dual_gamma_clahe(
 
 if __name__ == "__main__":
     path = "img_1.png"
-    image = cv2.imread(path, 0)
+    image = cv2.imread(path, 1)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     equalized_image = dual_gamma_clahe(
         image.copy(), block_size=32, alpha=100.0, delta=50.0, pi=1.5, bins=256
     )
