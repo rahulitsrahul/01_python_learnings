@@ -21,7 +21,7 @@ def rotate_image(img, angle):
     rotation_mat = get_rotation_mat(angle)
     for i in range(row):
         for j in range(col):
-            px = i - row/2
+            px = i - row/2 
             py = j - col/2
             
             
