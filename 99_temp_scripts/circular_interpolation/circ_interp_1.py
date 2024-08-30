@@ -150,6 +150,7 @@ def plot_circle(points):
 
 
 if __name__ == "__main__":
+    # Circular interpolation  gcodes
     prev_gcode_params = {'cmd': None, 'x': None, 'y': None , 'i': None, 'j': None, 'r': None, 'f': None}
     
     gcode = "G01 X10 Y10"
@@ -165,4 +166,5 @@ if __name__ == "__main__":
     prev_gcode_params = {'cmd': command, 'x': x, 'y': y , 'i': i, 'j': j, 'r': r, 'f': f}
     points = cnc_circular_interpolation(command, x, y, i, j, r)
     plot_circle(points)
+    
 
